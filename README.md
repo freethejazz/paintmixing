@@ -13,11 +13,11 @@ possible without overflowing it.
 
 ## Current blocker
 
-The desired solution will also optimize for a particular desired shaed
+The desired solution will also optimize for a particular desired shade
 of blue, which can be calculated using a weighted average of the
 buckets.
 
-The BlueShade is named shade of blue, which is just a blend of blue
+The `BlueShade` is named shade of blue, which is just a blend of blue
 paint and white paint. The percent blue is the percent of blue paint
 that went into the shade:
 
@@ -29,7 +29,7 @@ That shade can be determined using a wieghted average calculation on
 paint buckets used. The percent blue is weighted by the volume:
 
 ```
-sum(percentBlue * quantity) / sum(quantity) = percentBlue of vat
+sum(percentBlue of buckets * quantity of buckets) / sum(quantity of buckets) = percentBlue of vat
 ```
 
 This weighted average calculation is my current blocker. The options
@@ -39,6 +39,8 @@ I've considered are:
    that calculates the weighted average.
  - Calculate the weighted average using accumulators in a tricky way.
  - Write a custom accumulator for better reusability.
+
+### Shadow variable + convenience method
 My original solution was to add an `InverseRelationShadoVariable` on
 the `PaintVat` class and add a convenience method to calculate things
 like weighted average of the buckets assigned to the vat. I know this
@@ -57,26 +59,30 @@ purposes of this proof of concept the performance hit is not critical.
 Without proceeding to writing the convenience method, this already fails
 due to a StackOverflow after the initialization score is reported:
 
-> 2021-03-16 15:23:57.891  INFO 20240 --- [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
-> 2021-03-16 15:23:58.548  INFO 20240 --- [pool-1-thread-1] o.o.core.impl.solver.DefaultSolver       : Solving started: time spent (151), best score (0hard/-400medium/0soft), environment mode (REPRODUCIBLE), move thread count (NONE), random (JDK with seed 0).
-> 2021-03-16 15:23:58.586 ERROR 20240 --- [nio-8080-exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.util.concurrent.ExecutionException: java.lang.StackOverflowError] with root cause
-> 
-> java.lang.StackOverflowError: null
-> 	at io.freethejazz.paintmix.domain.BlueShade.hashCode(BlueShade.kt) ~[main/:na]
-> 	at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
-> 	at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
-> 	at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
-> 	at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
-> 	at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
-> 	at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
-> 	at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
-> 	at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
-> 	at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
-> 	at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
-> 	at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
-> 	at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
-> 	at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
-> ...
+```
+2021-03-16 15:23:57.891  INFO 20240 --- [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2021-03-16 15:23:58.548  INFO 20240 --- [pool-1-thread-1] o.o.core.impl.solver.DefaultSolver       : Solving started: time spent (151), best score (0hard/-400medium/0soft), environment mode (REPRODUCIBLE), move thread count (NONE), random (JDK with seed 0).
+2021-03-16 15:23:58.586 ERROR 20240 --- [nio-8080-exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.util.concurrent.ExecutionException: java.lang.StackOverflowError] with root cause
+
+java.lang.StackOverflowError: null
+  at io.freethejazz.paintmix.domain.BlueShade.hashCode(BlueShade.kt) ~[main/:na]
+  at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
+  at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
+  at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
+  at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
+  at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
+  at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
+  at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
+  at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
+  at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
+  at java.base/java.util.ArrayList.hashCodeRange(ArrayList.java:627) ~[na:na]
+  at java.base/java.util.ArrayList.hashCode(ArrayList.java:614) ~[na:na]
+  at io.freethejazz.paintmix.domain.PaintVat.hashCode(PaintVat.kt) ~[main/:na]
+  at io.freethejazz.paintmix.domain.PaintBucket.hashCode(PaintBucket.kt) ~[main/:na]
+  ...
+  ...
+  ...
+```
 
 I first thought this was an issue with the circular dependency at
 serialization time of the response, but I don't think it's the case and
@@ -86,8 +92,6 @@ before Jackson gets to it.
 
 The branch `shadow-var` includes this change and can be used to verify
 the failure.
-
-### Shadow variable + convenince method
 
 
 ### Pure accumulator approach
