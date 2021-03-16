@@ -1,0 +1,30 @@
+package io.freethejazz.paintmix;
+dialect  "java"
+
+import org.optaplanner.core.api.score.buildin.hardmediumsoft.HardMediumSoftScoreHolder;
+import io.freethejazz.paintmix.domain.PaintVat;
+import io.freethejazz.paintmix.domain.PaintBucket;
+
+global HardMediumSoftScoreHolder scoreHolder;
+
+rule "Use as many paint buckets as possible"
+    when
+        PaintBucket(paintVat == null)
+    then
+        scoreHolder.addMediumConstraintMatch(kcontext, -100);
+end
+
+rule "Don't exceed vat size"
+    when
+        $vat : PaintVat( $vatVolume : volume )
+        exists PaintBucket( paintVat == $vat )
+        $totalBucketVolumes : Number(floatValue > $vatVolume) from accumulate(
+            PaintBucket(
+                paintVat == $vat,
+                $bucketVolume : volume
+            ),
+            sum($bucketVolume)
+        )
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
