@@ -3,6 +3,8 @@
 A generic prototype for mixing paint (a variation of bin packing) using
 optaplanner.
 
+![image](https://user-images.githubusercontent.com/1261421/111267520-220ac880-8680-11eb-9946-3d9ea8f77ddc.png)
+
 The main branch has the minimal solution built, which optimizes the
 problem of mixing buckets of blue paint into a vat. The problem is
 overconstrined and it is possible (and desired) for a paint bucket to be
