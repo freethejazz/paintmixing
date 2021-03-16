@@ -11,6 +11,10 @@ unallocated to a vat rather than overflowing the vat.
 The rules in the main branch try to allocate as many buckets to a vat as
 possible without overflowing it.
 
+Once the server is up, you can trigger an example payload with
+`./post-request.sh`. I haven't yet set up testing classes around the POC
+so the post request is the quickest way of showing usage/data examples.
+
 ## Current blocker
 
 The desired solution will also optimize for a particular desired shade
